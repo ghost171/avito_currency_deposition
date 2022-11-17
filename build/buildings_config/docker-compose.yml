@@ -1,0 +1,34 @@
+version: "3.7"
+
+services:
+  db:
+    build:
+      context: ../build
+      dockerfile: ../build/Dockerfile.postgres
+    environment: 
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=spartak1
+      - POSTGRES_DB=balance
+    ports:
+      - "4001:4001"
+    networks:
+      - backend
+    volumes: 
+      - .database/postgres/data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ../.
+      dockerfile: build/Dockerfile
+    ports:
+      - "4000:4000"
+    depends_on: 
+      - db
+    networks:
+      - backend
+    volumes:
+      - ../.:/go/src/api
+    restart: always
+
+networks:
+  backend:
