@@ -21,7 +21,7 @@ services:
       context: ../.
       dockerfile: build/Dockerfile
     ports:
-      - "4000:4000"
+      - "3333:3333"
     depends_on: 
       - db
     networks:

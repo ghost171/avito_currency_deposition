@@ -1,5 +1,5 @@
 start:
-	docker-compose -f buildings_config/docker-compose.yml up -d
+	docker-compose -f buildings_config/docker-compose.yml up
 
 stop:
 	docker-compose -f buildings_config/docker-compose.yml down
