@@ -15,7 +15,11 @@ func NewRepo(db *sql.DB) {
 	}
 }
 
-
+var (
+	ErrorNotExistedUser = fmt.Errorf("There is no such user")
+	ErrorNotEnoughMoney = fmt.Errorf("Does not have enough money")
+	ErrorDatabase = fmt.Errorf("Database error")
+)
 
 func (r *Repo) Deposit(user_id string, value float64) error {
 	user := &User{}
@@ -23,46 +27,46 @@ func (r *Repo) Deposit(user_id string, value float64) error {
 	if err == sql.ErrNoRows {
 		transaction, err := r.database.Begin()
 		if err != nil {
-			return fmt.Errorf("You got an error during the begging of transaction in deposit action.")
-		}fmt.Errorf("DB error")
+			return ErrorDatabase
+		}
 
 		defer transaction.Rollback()
 
-		transaction, err = transaction.Exec("INSERT INTO users(id, value) VALUES($1, $2)", user_id, value)
+		_, err = transaction.Exec("INSERT INTO users(id, value) VALUES($1, $2)", user_id, value)
 		if err != nil {
-			return fmt.Errorf("You got an error during the insertion  in deposit action.")
+			return ErrorDatabase
 		}
 
-		transaction, err = transaction.Exec("INSERT into deposits(to_user_id, value) VALUES($1, $2)", user_id, value)
+		_, err = transaction.Exec("INSERT into deposits(to_user_id, value) VALUES($1, $2)", user_id, value)
 		if err != nil {
-			return fmt.Errorf("You got an error during the insertion  in deposit action.")
+			return ErrorDatabase
 		}
 
 		err = transaction.Commit()
 
 		if err != nil {
-			return fmt.Errorf("You got an error during making commit in deposit action.")
+			return ErrorDatabase
 		}
 	}
 	transaction, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("You have error in your query.")
+		return ErrorDatabase
 	}
 	defer transaction.Rollback()
 
 	addedValue := user.Value + value
 	_, err = transaction.Exec("UPDATE users SET value = $1 WHERE id = $2", addedValue, user_id)
 	if err != nil {
-		return fmt.Errorf("You got an error during updating process.")
+		return ErrorDatabase
 	}
 
 	_, err = transaction.Exec("INSERT into deposits(to_user_id, value) VALUES($1, $2)", user_id, value) 
 	if err != nil {
-		return fmt.Errorf("You got an error during incertion user_id.")
+		return ErrorDatabase
 	}
 	err = transaction.Commit()
 	if err != nil {
-		return fmt.Errorf("You got an error during making commit in deposit action.")
+		return ErrorDatabase
 	}
 	return nil
 }
@@ -72,32 +76,32 @@ func (r *Repo) Cashout(user_id string, value float64) error {
 	user = &User{}
 	transaction, err = r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("You got an error during the begging of transaction in withdraw action.")
+		return ErrorDatabase
 	}
 	defer transaction.Rollback()
 	
 	err = transaction.QueryRow("SELECT value from users WHERE id = $1", user_id).Scan(&user.Value)
 	if err == sql.ErrNoRows {
-		fmt.Errorf("There is no such user")
+		return ErrorNotExistedUser
 	}
 
 	if user.Value >= value {
 		withdrawedValue := user.Value - value
 		_, err = transaction.Exec("UPDATE users SET value = $1 WHERE id = $2", withdrawedValue, user_id)
 		if err != nil {
-			return fmt.Errorf("You got an error during update transaction")
+			return ErrorDatabase
 		}
 		_, err = transaction.Exec("INSERT INTO cashouts(from_user_id, value) VALUES($1, $2)", user_id, value)
 		if err != nil {
-			return fmt.Errorf("You got an error during insert transaction")
-		}
+			return ErrorDatabase
+		} 	
 		err = transaction.Commit()
 		if err != nil {
-			return ("You got an error during commit transaction")
+			return ErrorDatabase
 		}
 		return nil
 	}
-	return fmt.Errorf("User does not have enough money")
+	return ErrorNotEnoughMoney
 }
 
 func (r *Repo) Transfer(from_user_id, to_user_id, value float64) error {
@@ -105,39 +109,39 @@ func (r *Repo) Transfer(from_user_id, to_user_id, value float64) error {
 	to_user = &User{}
 	transaction, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("You got an error during tranferring action.")
+		return ErrorDatabase
 	}
 	defer transaction.Rollback()
 	err = transaction.QueryRow("SELECT value from users WHERE id = $1", from_user_id).Scan(&from_user.Value)
 	if err == sql.ErrNoRows {
-		return fmt.Errorf("There is no such user")
+		return ErrorNotExistedUser
 	}
 	err = transaction.QueryRow("SELECT value from users WHERE id = $1", to_user_id).Scan(&to_user.Value)
 	if err == sql.ErrNoRows {
-		return fmt.Errorf("There is no such user")
+		return ErrorNotExistedUser
 	}
 	if from_user.Value >= value {
 		first_user_value := from_user.Value - value
 		second_user_value := to_user.Value + value
 		_, err = transaction.Exec("UPDATE users SET balance = $1 WHERE id = $2", first_user_value, from_user_id)
 		if err != nil {
-			return fmt.Errorf("You got an error during updating section")
+			return ErrorDatabase
 		}
 		_, err = transaction.Exec("UPDATE users SET balance = $1 WHERE id = $2", second_user_value, to_user_id)
 		if err != nil {
-			return fmt.Errorf("You got an error during updating section")
+			return ErrorDatabase
 		}
 		_, err = transaction.Exec("INSERT INTO transactions(from_user_id, to_user_id, value) VALUES($1, $2, $3)", from_user_id, to_user_id, value)
 		if err != nil {
-			return fmt.Errorf("You got an error during insertion section")
+			return ErrorDatabase
 		}
 		err = transaction.Commit()
 		if err != nil {
-			return fmt.Errorf("You got an error during commit section")
+			return ErrorDatabase
 		}
 		return nil
 	}
-	return fmt.Errorf("User does not have enough money")
+	return ErrorDatabase
 }
 
 func BalanceOperation struct {
@@ -148,6 +152,34 @@ func BalanceOperation struct {
 	DateCreation string `json:"datecreation"`
 }
 
-/*func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([]*user_balance_operation, error) {
-	operations := make([]*)
-}*/
+func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([]*user_balance_operation, error) {
+	operations := make([]*user_balance_operation, 0, 10)
+	sort := fmt.Sprintf(" ORDER BY %s %s", sort_by, sort_order)
+	limitation := fmt.Sprintf(" LIMIT %d OFFSET %d ", perPage, offset)
+	
+	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, value, date_of_creation FROM deposits
+	WHERE to_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM cashouts
+	WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM transactions 
+	WHERE from_user_id = $1
+	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM transactions
+	WHERE to_user_id = $1` + sort + limitation, user_id)
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, ErrorDatabase
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		item := &BalanceOperation{}
+		err := rows.Scan(&item.ID, &item.FromUserID, &item.ToUserID, &item.Value, &item.DateCreation)
+		if err != nil {
+			return nil, ErrorDatabase
+		}
+		operations = append(operations, item)
+	}
+	return operations, nil
+}
