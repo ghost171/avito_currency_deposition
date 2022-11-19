@@ -2,35 +2,57 @@ package main
 
 import (
 	"context"
-	//"database/sql"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+	"log"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
+	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/config"
+	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/handler"
+	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/users"
+
 )
 
-type Config struct {
-	DBDriver   string `mapstructure:"DB_DRIVER"`
-	DBSource   string `mapstructure:"DB_SOURCE"`
-	ServerPort string `mapstructure:"SERVER_PORT"`
-}
-
 func main() {
-	//db, err := sql.Open("postgres", )
-	//ur := users.NewRepo(db)
+	cfg, err := config.Load("configs")
+	if err != nil {
+		log.Fatal("Error while reading config file:", err)
+	}
+	db, err := sql.Open(cfg.DBDriver, cfg.DBSource)
+	if err != nil {
+		log.Fatal("Error while sql.Open: ", err)
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("Cannot connect to db, err: %v\n", err)
+	}
+	
+	ur := users.NewRepo(db)
+
 	sm := mux.NewRouter()
 
+	uh := handler.UserHandler(ur)
+
+	sm.HandleFunc("/deposit", uh.Deposit).Methods("POST")
+	sm.HandleFunc("/cashout", uh.Cashout).Methods("POST")
+	sm.HandleFunc("/transfer", uh.Transfer).Methods("POST")
+	sm.HandleFunc("/value", uh.GetValue).Methods("GET")
+	sm.HandleFunc("/operations", uh.ListOperations).Methods("GET")
+
 	server := &http.Server{
-		Addr:         ":3333",
+		Addr:         cfg.ServerPort,
 		Handler:      sm,
-		IdleTimeout:  20*time.Second,
-		ReadTimeout:  1*time.Second,
-		WriteTimeout: 1*time.Second,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
 	}
 
 	go func() {
@@ -49,7 +71,7 @@ func main() {
 	sig := <-sigChannel
 	fmt.Println("Command to terminate received, shutdown", sig)
 
-	timeoutContext, finish := context.WithTimeout(context.Background(), 30*time.Second)
+	timeoutContext, finish := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer finish()
 	server.Shutdown(timeoutContext)
 }

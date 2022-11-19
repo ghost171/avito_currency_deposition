@@ -7,8 +7,8 @@ services:
       dockerfile: ../build/Dockerfile.postgres
     environment: 
       - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=spartak1
-      - POSTGRES_DB=balance
+      - POSTGRES_PASSWORD=ghost171
+      - POSTGRES_DB=app
     ports:
       - "3334:3334"
     networks:

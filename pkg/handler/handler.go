@@ -9,7 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"https://github.com/ghost171/avito_currency_deposition/tree/main/pkg/users"
+	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/users"
+
 )
 
 type UserHandler struct {
