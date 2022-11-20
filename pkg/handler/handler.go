@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/users"
+	"github.com/ghost171/avito_currency_deposition/pkg/users"
 
 )
 
@@ -54,14 +54,13 @@ func callAPIExchange(currency string) float64 {
 
 func (uh *UserHandler) GetValue(rw http.ResponseWriter, r *http.Request) {
 	parameters := r.URL.Query()
-	user_id = parameters["user"][0]
+	user_id := parameters["user"][0]
 	value, err := uh.response.Value(user_id)
 	
 	if err == users.ErrorNotExistedUser {
 		http.Error(rw, "There is no such user", http.StatusBadRequest)
 	} else {
-		if _, ok := parameters["currency"]; ok 
-		{
+		if _, ok := parameters["currency"]; ok {
 			currency := parameters["currency"][0]
 			value = value * callAPIExchange(currency)
 		}
@@ -75,7 +74,7 @@ func (uh *UserHandler) GetValue(rw http.ResponseWriter, r *http.Request) {
 	
 }
 
-func (uh *UserHandler)  Deposit(rw http.ResponseWriter, r *Request) {
+func (uh *UserHandler)  Deposit(rw http.ResponseWriter, r *http.Request) {
 	parameters := r.URL.Query()
 	user_id := parameters["user"][0]
 	value, err := strconv.ParseFloat(parameters["value"][0], 64)
@@ -83,22 +82,18 @@ func (uh *UserHandler)  Deposit(rw http.ResponseWriter, r *Request) {
 		http.Error(rw, "Cannot parse value of money", http.StatusBadRequest)
 	} 
 	if value > 0 {
-		err = uh.r.Deposit(user_id, value)
+		err = uh.response.Deposit(user_id, value)
 		switch err {
 			case nil:
-			case users.ErrNoRows:
-				http.Error(rw, "User does not exist", http.StatusBadRequest)
-			case user.ErrorNotEnoughMoney:
-				http.Error(rw, "User does not have enough money", http.StatusBadRequest)
 			case users.ErrorDatabase:
 				http.Error(rw, "Internal Error", http.StatusInternalServerError)
 		}
 	} else {
-		http.Error(rw, "Withdrawal of only positive sums is allowed", http.StatusBadRequest)
+		http.Error(rw, "Desposit of only positive sums is allowed", http.StatusBadRequest)
 	}
 }
 
-func (r *Repo) Cashout(user_id string, value float64) error {
+func (uh *UserHandler) Cashout(rw http.ResponseWriter, r *http.Request) {
 
 	parameters := r.URL.Query()
 	user_id := parameters["users"][0]
@@ -108,12 +103,12 @@ func (r *Repo) Cashout(user_id string, value float64) error {
 		http.Error(rw, "Cannot parse value of money in user account", http.StatusBadRequest)
 	}
 	if value > 0 {
-		err = uh.r.Cashout(user_id, value)
+		err = uh.response.Cashout(user_id, value)
 		switch err {
 			case nil:
-			case users.ErrNoRows:
+			case users.ErrorNotExistedUser:
 				http.Error(rw, "User does not exist", http.StatusBadRequest)
-			case user.ErrorNotEnoughMoney:
+			case users.ErrorNotEnoughMoney:
 				http.Error(rw, "User does not have enough money", http.StatusBadRequest)
 			case users.ErrorDatabase:
 				http.Error(rw, "Internal Error", http.StatusInternalServerError)
@@ -133,14 +128,14 @@ func (uh *UserHandler) Transfer(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "Cannot parse value of money", http.StatusBadRequest)
 	}
 	if value > 0 {
-		err = uh.r.Transfer(from_user_id, to_user_id, value)
+		err = uh.response.Transfer(from_user_id, to_user_id, value)
 		switch err {
 		case nil:
 		case users.ErrorNotEnoughMoney:
 			http.Error(rw, "User does not have enough money", http.StatusBadRequest)
-		case users.ErrNoUser:
+		case users.ErrorNotExistedUser:
 			http.Error(rw, "One or both users do not exist", http.StatusBadRequest)
-		case users.ErrDBQuery:
+		case users.ErrorDatabase:
 			http.Error(rw, "Internal error", http.StatusInternalServerError)
 		}
 	} else {
@@ -159,7 +154,7 @@ func (uh *UserHandler) ListOperations(rw http.ResponseWriter, r *http.Request) {
 	sort_by := "date_of_creation"
 	sort_order := "asc"
 	page := 1
-	perPage := 10
+	per_page := 10
 
 	if _, ok := parameters["sort"]; ok {
 		sort_by = parameters["sort"][0]
@@ -175,7 +170,7 @@ func (uh *UserHandler) ListOperations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	offset := (page - 1) * per_page
-	operations, err := uh.r.List(user_id, sort_by, sort_order, per_page, offset)
+	operations, err := uh.response.List(user_id, sort_by, sort_order, per_page, offset)
 
 	if err != nil {
 		http.Error(rw, "Database error", http.StatusInternalServerError)

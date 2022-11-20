@@ -1,17 +1,24 @@
 package users
 
 import (
-	"database/sql",
+	"database/sql"
 	"fmt"
 )
+
+type User struct {
+	Id string `json:"ID"`
+	Value float64 `json:"balance"`
+	Currency string `json:"value"`
+	DateOfCreation string `json:"date_of_creation"`
+}
 
 type Repo struct {
 	db *sql.DB
 }
 
-func NewRepo(db *sql.DB) {
+func NewRepo(db *sql.DB) *Repo {
 	return &Repo{
-		db: database,
+		db: db,
 	}
 }
 
@@ -23,9 +30,9 @@ var (
 
 func (r *Repo) Deposit(user_id string, value float64) error {
 	user := &User{}
-	err := r.database.QueryRow("SELECT value from users WHERE id = $1", user_id).Scan(&user.Value)
+	err := r.db.QueryRow("SELECT value from users WHERE id = $1", user_id).Scan(&user.Value)
 	if err == sql.ErrNoRows {
-		transaction, err := r.database.Begin()
+		transaction, err := r.db.Begin()
 		if err != nil {
 			return ErrorDatabase
 		}
@@ -73,8 +80,8 @@ func (r *Repo) Deposit(user_id string, value float64) error {
 
 
 func (r *Repo) Cashout(user_id string, value float64) error {
-	user = &User{}
-	transaction, err = r.db.Begin()
+	user := &User{}
+	transaction, err := r.db.Begin()
 	if err != nil {
 		return ErrorDatabase
 	}
@@ -104,9 +111,9 @@ func (r *Repo) Cashout(user_id string, value float64) error {
 	return ErrorNotEnoughMoney
 }
 
-func (r *Repo) Transfer(from_user_id, to_user_id, value float64) error {
-	from_user = &User{}
-	to_user = &User{}
+func (r *Repo) Transfer(from_user_id, to_user_id string, value float64) error {
+	from_user := &User{}
+	to_user := &User{}
 	transaction, err := r.db.Begin()
 	if err != nil {
 		return ErrorDatabase
@@ -144,7 +151,17 @@ func (r *Repo) Transfer(from_user_id, to_user_id, value float64) error {
 	return ErrorDatabase
 }
 
-func BalanceOperation struct {
+func (r *Repo) Value(user_id string) (float64, error) {
+	user := &User{}
+	err := r.db.QueryRow("SELECT value FROM users WHERE id = $1", user_id).Scan(&user.Value)
+
+	if err == sql.ErrNoRows {
+		return -1, ErrorNotExistedUser
+	}
+	return user.Value, nil
+}
+
+type ValueOperation struct {
 	ID int `json:"id"`
 	FromUserID string `json:"from_user_id"`
 	ToUserID string `json:"to_user_id"`
@@ -152,8 +169,8 @@ func BalanceOperation struct {
 	DateCreation string `json:"datecreation"`
 }
 
-func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([]*user_balance_operation, error) {
-	operations := make([]*user_balance_operation, 0, 10)
+func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([]*ValueOperation, error) {
+	operations := make([]*ValueOperation, 0, 10)
 	sort := fmt.Sprintf(" ORDER BY %s %s", sort_by, sort_order)
 	limitation := fmt.Sprintf(" LIMIT %d OFFSET %d ", perPage, offset)
 	
@@ -174,7 +191,7 @@ func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([
 	defer rows.Close()
 
 	for rows.Next() {
-		item := &BalanceOperation{}
+		item := &ValueOperation{}
 		err := rows.Scan(&item.ID, &item.FromUserID, &item.ToUserID, &item.Value, &item.DateCreation)
 		if err != nil {
 			return nil, ErrorDatabase

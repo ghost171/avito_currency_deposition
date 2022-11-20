@@ -13,9 +13,9 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 
-	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/config"
-	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/handler"
-	"github.com/ghost171/avito_currency_deposition/tree/main/pkg/users"
+	"github.com/ghost171/avito_currency_deposition/pkg/config"
+	"github.com/ghost171/avito_currency_deposition/pkg/handler"
+	"github.com/ghost171/avito_currency_deposition/pkg/users"
 
 )
 
@@ -39,7 +39,7 @@ func main() {
 
 	sm := mux.NewRouter()
 
-	uh := handler.UserHandler(ur)
+	uh := handler.NewUserHandler(ur)
 
 	sm.HandleFunc("/deposit", uh.Deposit).Methods("POST")
 	sm.HandleFunc("/cashout", uh.Cashout).Methods("POST")
