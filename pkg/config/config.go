@@ -19,9 +19,9 @@ func Load(path string) (config Config, err error) {
 
 	err = viper.ReadInConfig()
 	if err != nil {
-		return
+		return config, err
 	}
 
 	err = viper.Unmarshal(&config)
-	return
+	return config, err
 }

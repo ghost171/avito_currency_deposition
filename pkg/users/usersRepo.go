@@ -176,11 +176,11 @@ func (r *Repo) List(user_id, sort_by, sort_order string, perPage, offset int) ([
 	
 	rows, err := r.db.Query(`SELECT id, from_user_id, to_user_id, value, date_of_creation FROM deposits
 	WHERE to_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM cashouts
+	UNION ALL SELECT id, from_user_id, to_user_id, value, date_of_creation FROM cashouts
 	WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM transactions 
+	UNION ALL SELECT id, from_user_id, to_user_id, value, date_of_creation FROM transactions 
 	WHERE from_user_id = $1
-	UNION ALL SELECT id, from_user_id, to_user_id, amount, date_of_creation FROM transactions
+	UNION ALL SELECT id, from_user_id, to_user_id, value, date_of_creation FROM transactions
 	WHERE to_user_id = $1` + sort + limitation, user_id)
 
 	if err != nil {

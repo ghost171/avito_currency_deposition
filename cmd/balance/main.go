@@ -47,6 +47,8 @@ func main() {
 	sm.HandleFunc("/value", uh.GetValue).Methods("GET")
 	sm.HandleFunc("/operations", uh.ListOperations).Methods("GET")
 
+
+
 	server := &http.Server{
 		Addr:         cfg.ServerPort,
 		Handler:      sm,
