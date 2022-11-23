@@ -6,7 +6,7 @@
 http://localhost:4000/value?user="your user id"
 ```
 
-Пример:
+Example:
 
 ```
 http://localhost:4000/value?user=roma
@@ -17,16 +17,18 @@ http://localhost:4000/value?user=roma
 http://localhost:4000/value?user="your user id"&currency="your currency type"
 ```
 
-Пример:
+Example:
 
-
+```
+http://localhost:4000/value?user=roma&currency=RUB
+```
 
 3.  To deposit money on user's balance use:
 ```
 curl -X POST http://localhost:4000/deposit?user="your user id"&amount="your user's amount to deposit"
 ```
 
-Пример:
+Example:
 
 ```
 curl -X POST http://localhost:4000/deposit?user=roma&value=10000
@@ -34,8 +36,15 @@ curl -X POST http://localhost:4000/deposit?user=roma&value=10000
 
 4. To widthdraw money from user's balance use:
 ```
-curl -X POST http://localhost:4000/withdraw?user="your user id"&amount="your user's amount to withdraw"
+curl -X POST http://localhost:4000/cashout?user="your user id"&value="your user's amount to withdraw"
 ```
+
+Example:
+
+```
+curl -X POST http://localhost:4000/cashout?user=roma&value=100
+```
+
 
 5. To transfer money from one user to another use:
 ```
